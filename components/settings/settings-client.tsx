@@ -5,11 +5,14 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/com
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select'
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs'
 import { createClient } from '@/lib/supabase/client'
 import toast from 'react-hot-toast'
-import { User, Shield, Download, Trash2, Loader2 } from 'lucide-react'
+import { User, Shield, Download, Trash2, Loader2, Globe, DollarSign } from 'lucide-react'
 import type { User as SupabaseUser } from '@supabase/supabase-js'
+import { CURRENCIES } from '@/lib/types/currency'
+import { useCurrency } from '@/lib/contexts/currency-context'
 
 interface SettingsClientProps {
   user: SupabaseUser
@@ -20,6 +23,7 @@ export function SettingsClient({ user }: SettingsClientProps) {
   const [currentPassword, setCurrentPassword] = useState('')
   const [newPassword, setNewPassword] = useState('')
   const [confirmPassword, setConfirmPassword] = useState('')
+  const { currency, locale, updateCurrency } = useCurrency()
   
   const supabase = createClient()
 
@@ -132,8 +136,9 @@ export function SettingsClient({ user }: SettingsClientProps) {
       </div>
 
       <Tabs defaultValue="account" className="space-y-6">
-        <TabsList className="grid w-full grid-cols-3">
+        <TabsList className="grid w-full grid-cols-4">
           <TabsTrigger value="account">Account</TabsTrigger>
+          <TabsTrigger value="preferences">Preferences</TabsTrigger>
           <TabsTrigger value="security">Security</TabsTrigger>
           <TabsTrigger value="data">Data & Privacy</TabsTrigger>
         </TabsList>
@@ -165,6 +170,83 @@ export function SettingsClient({ user }: SettingsClientProps) {
                 <p className="text-sm text-muted-foreground">
                   {new Date(user.created_at).toLocaleDateString()}
                 </p>
+              </div>
+            </CardContent>
+          </Card>
+        </TabsContent>
+
+        <TabsContent value="preferences" className="space-y-4">
+          <Card>
+            <CardHeader>
+              <CardTitle>Display Preferences</CardTitle>
+              <CardDescription>
+                Customize how information is displayed in your dashboard
+              </CardDescription>
+            </CardHeader>
+            <CardContent className="space-y-6">
+              <div className="space-y-2">
+                <Label htmlFor="currency" className="flex items-center gap-2">
+                  <DollarSign className="h-4 w-4" />
+                  Currency
+                </Label>
+                <Select 
+                  value={currency.code} 
+                  onValueChange={(value) => {
+                    const selected = CURRENCIES.find(c => c.code === value)
+                    if (selected) {
+                      updateCurrency(selected.code, selected.locale)
+                    }
+                  }}
+                >
+                  <SelectTrigger id="currency">
+                    <SelectValue />
+                  </SelectTrigger>
+                  <SelectContent>
+                    {CURRENCIES.map((curr) => (
+                      <SelectItem key={curr.code} value={curr.code}>
+                        <span className="flex items-center gap-2">
+                          <span className="font-mono">{curr.symbol}</span>
+                          <span>{curr.code} - {curr.name}</span>
+                        </span>
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+                <p className="text-xs text-muted-foreground">
+                  This currency will be used for all financial displays
+                </p>
+              </div>
+
+              <div className="space-y-2">
+                <Label htmlFor="locale" className="flex items-center gap-2">
+                  <Globe className="h-4 w-4" />
+                  Number Format
+                </Label>
+                <Select value={locale} onValueChange={(value) => updateCurrency(currency.code, value)}>
+                  <SelectTrigger id="locale">
+                    <SelectValue />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="en-US">1,234.56 (US)</SelectItem>
+                    <SelectItem value="en-GB">1,234.56 (UK)</SelectItem>
+                    <SelectItem value="de-DE">1.234,56 (Germany)</SelectItem>
+                    <SelectItem value="fr-FR">1 234,56 (France)</SelectItem>
+                    <SelectItem value="ja-JP">1,234.56 (Japan)</SelectItem>
+                    <SelectItem value="zh-CN">1,234.56 (China)</SelectItem>
+                  </SelectContent>
+                </Select>
+                <p className="text-xs text-muted-foreground">
+                  How numbers and dates are formatted
+                </p>
+              </div>
+
+              <div className="rounded-lg border p-4 bg-muted/50">
+                <p className="text-sm font-medium mb-2">Preview</p>
+                <div className="space-y-1 text-sm">
+                  <p>Currency: {new Intl.NumberFormat(locale, { style: 'currency', currency: currency.code }).format(1234.56)}</p>
+                  <p>Date: {new Intl.DateTimeFormat(locale).format(new Date())}</p>
+                  <p>Number: {new Intl.NumberFormat(locale).format(1234567.89)}</p>
+                </div>
               </div>
             </CardContent>
           </Card>

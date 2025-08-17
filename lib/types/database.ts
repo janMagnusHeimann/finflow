@@ -19,6 +19,12 @@ export interface Database {
           date: string
           description: string | null
           recurring: boolean
+          recurring_frequency: 'daily' | 'weekly' | 'monthly' | 'yearly' | 'custom' | null
+          recurring_interval: number | null
+          recurring_unit: 'days' | 'weeks' | 'months' | 'years' | null
+          next_date: string | null
+          is_paused: boolean
+          paused_until: string | null
           created_at: string
           updated_at: string
         }
@@ -31,6 +37,12 @@ export interface Database {
           date?: string
           description?: string | null
           recurring?: boolean
+          recurring_frequency?: 'daily' | 'weekly' | 'monthly' | 'yearly' | 'custom' | null
+          recurring_interval?: number | null
+          recurring_unit?: 'days' | 'weeks' | 'months' | 'years' | null
+          next_date?: string | null
+          is_paused?: boolean
+          paused_until?: string | null
           created_at?: string
           updated_at?: string
         }
@@ -43,6 +55,12 @@ export interface Database {
           date?: string
           description?: string | null
           recurring?: boolean
+          recurring_frequency?: 'daily' | 'weekly' | 'monthly' | 'yearly' | 'custom' | null
+          recurring_interval?: number | null
+          recurring_unit?: 'days' | 'weeks' | 'months' | 'years' | null
+          next_date?: string | null
+          is_paused?: boolean
+          paused_until?: string | null
           created_at?: string
           updated_at?: string
         }
@@ -109,6 +127,32 @@ export interface Database {
           published_at?: string
           topic?: string
           created_at?: string
+        }
+      }
+      user_preferences: {
+        Row: {
+          id: string
+          user_id: string
+          currency: string
+          locale: string
+          created_at: string
+          updated_at: string
+        }
+        Insert: {
+          id?: string
+          user_id: string
+          currency?: string
+          locale?: string
+          created_at?: string
+          updated_at?: string
+        }
+        Update: {
+          id?: string
+          user_id?: string
+          currency?: string
+          locale?: string
+          created_at?: string
+          updated_at?: string
         }
       }
     }

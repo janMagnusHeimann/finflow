@@ -8,7 +8,16 @@ export interface FinanceEntry {
   date: string
   description?: string
   recurring: boolean
+  recurring_frequency?: 'daily' | 'weekly' | 'monthly' | 'yearly' | 'custom'
+  recurring_interval?: number
+  recurring_unit?: 'days' | 'weeks' | 'months' | 'years'
+  next_date?: string
+  is_paused?: boolean
+  paused_until?: string
 }
+
+export type RecurringFrequency = 'daily' | 'weekly' | 'monthly' | 'yearly' | 'custom'
+export type RecurringUnit = 'days' | 'weeks' | 'months' | 'years'
 
 export interface Goal {
   id: string

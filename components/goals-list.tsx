@@ -8,6 +8,7 @@ import { Label } from '@/components/ui/label'
 import { Progress } from '@/components/ui/progress'
 import { createClient } from '@/lib/supabase/client'
 import { formatCurrency } from '@/lib/utils/format'
+import { useCurrency } from '@/lib/contexts/currency-context'
 import toast from 'react-hot-toast'
 import { Plus, Target, Loader2 } from 'lucide-react'
 
@@ -24,6 +25,7 @@ export function GoalsList({ goals, userId, onGoalAdded }: GoalsListProps) {
   const [targetAmount, setTargetAmount] = useState('')
   const [currentAmount, setCurrentAmount] = useState('')
   const [deadline, setDeadline] = useState('')
+  const { currency, locale } = useCurrency()
 
   const supabase = createClient()
 
@@ -157,7 +159,7 @@ export function GoalsList({ goals, userId, onGoalAdded }: GoalsListProps) {
                       <span className="text-sm font-medium">{goal.name}</span>
                     </div>
                     <span className="text-sm text-muted-foreground">
-                      {formatCurrency(Number(goal.current_amount))} / {formatCurrency(Number(goal.target_amount))}
+                      {formatCurrency(Number(goal.current_amount), currency.code, locale)} / {formatCurrency(Number(goal.target_amount), currency.code, locale)}
                     </span>
                   </div>
                   <Progress value={progress} className="h-2" />

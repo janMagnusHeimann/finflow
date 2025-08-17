@@ -7,9 +7,11 @@ import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select'
-import { EXPENSE_CATEGORIES, INCOME_CATEGORIES } from '@/lib/types'
+import { Switch } from '@/components/ui/switch'
+import { EXPENSE_CATEGORIES, INCOME_CATEGORIES, type RecurringFrequency, type RecurringUnit } from '@/lib/types'
 import toast from 'react-hot-toast'
-import { Plus, Loader2 } from 'lucide-react'
+import { Plus, Loader2, CalendarDays } from 'lucide-react'
+import { addDays, addWeeks, addMonths, addYears } from 'date-fns'
 
 interface FinanceFormProps {
   userId: string
@@ -24,14 +26,52 @@ export function FinanceForm({ userId, onFinanceAdded }: FinanceFormProps) {
   const [description, setDescription] = useState('')
   const [date, setDate] = useState(new Date().toISOString().split('T')[0])
   const [recurring, setRecurring] = useState(false)
+  const [recurringFrequency, setRecurringFrequency] = useState<RecurringFrequency>('monthly')
+  const [recurringInterval, setRecurringInterval] = useState('1')
+  const [recurringUnit, setRecurringUnit] = useState<RecurringUnit>('months')
 
   const supabase = createClient()
+
+  const calculateNextDate = (startDate: string): Date | null => {
+    if (!recurring) return null
+    
+    const start = new Date(startDate)
+    const interval = parseInt(recurringInterval) || 1
+
+    switch (recurringFrequency) {
+      case 'daily':
+        return addDays(start, 1)
+      case 'weekly':
+        return addWeeks(start, 1)
+      case 'monthly':
+        return addMonths(start, 1)
+      case 'yearly':
+        return addYears(start, 1)
+      case 'custom':
+        switch (recurringUnit) {
+          case 'days':
+            return addDays(start, interval)
+          case 'weeks':
+            return addWeeks(start, interval)
+          case 'months':
+            return addMonths(start, interval)
+          case 'years':
+            return addYears(start, interval)
+          default:
+            return null
+        }
+      default:
+        return null
+    }
+  }
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
     setIsLoading(true)
 
     try {
+      const nextDate = calculateNextDate(date)
+      
       const { data, error } = await supabase
         .from('personal_finances')
         .insert({
@@ -42,6 +82,10 @@ export function FinanceForm({ userId, onFinanceAdded }: FinanceFormProps) {
           description,
           date,
           recurring,
+          recurring_frequency: recurring ? recurringFrequency : null,
+          recurring_interval: recurring && recurringFrequency === 'custom' ? parseInt(recurringInterval) : 1,
+          recurring_unit: recurring && recurringFrequency === 'custom' ? recurringUnit : 'months',
+          next_date: nextDate ? nextDate.toISOString() : null,
         })
         .select()
         .single()
@@ -55,6 +99,10 @@ export function FinanceForm({ userId, onFinanceAdded }: FinanceFormProps) {
         setAmount('')
         setDescription('')
         setCategory('')
+        setRecurring(false)
+        setRecurringFrequency('monthly')
+        setRecurringInterval('1')
+        setRecurringUnit('months')
       }
     } catch (error) {
       toast.error('An unexpected error occurred')
@@ -64,6 +112,20 @@ export function FinanceForm({ userId, onFinanceAdded }: FinanceFormProps) {
   }
 
   const categories = type === 'income' ? INCOME_CATEGORIES : EXPENSE_CATEGORIES
+
+  const getRecurrenceText = () => {
+    if (!recurring) return ''
+    
+    if (recurringFrequency === 'custom') {
+      const intervalNum = parseInt(recurringInterval) || 1
+      if (intervalNum === 1) {
+        return `Every ${recurringUnit.slice(0, -1)}`
+      }
+      return `Every ${recurringInterval} ${recurringUnit}`
+    }
+    
+    return recurringFrequency.charAt(0).toUpperCase() + recurringFrequency.slice(1)
+  }
 
   return (
     <Card>
@@ -142,17 +204,84 @@ export function FinanceForm({ userId, onFinanceAdded }: FinanceFormProps) {
             />
           </div>
 
-          <div className="flex items-center space-x-2">
-            <input
-              type="checkbox"
-              id="recurring"
-              checked={recurring}
-              onChange={(e) => setRecurring(e.target.checked)}
-              className="rounded border-gray-300"
-            />
-            <Label htmlFor="recurring" className="text-sm font-normal">
-              This is a recurring transaction
-            </Label>
+          <div className="space-y-4 rounded-lg border p-4">
+            <div className="flex items-center justify-between">
+              <div className="flex items-center space-x-2">
+                <CalendarDays className="h-4 w-4 text-muted-foreground" />
+                <Label htmlFor="recurring" className="text-sm font-medium">
+                  Recurring Transaction
+                </Label>
+              </div>
+              <Switch
+                id="recurring"
+                checked={recurring}
+                onCheckedChange={setRecurring}
+              />
+            </div>
+
+            {recurring && (
+              <div className="space-y-4 pt-2">
+                <div className="space-y-2">
+                  <Label htmlFor="frequency">Frequency</Label>
+                  <Select 
+                    value={recurringFrequency} 
+                    onValueChange={(value: RecurringFrequency) => setRecurringFrequency(value)}
+                  >
+                    <SelectTrigger>
+                      <SelectValue />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="daily">Daily</SelectItem>
+                      <SelectItem value="weekly">Weekly</SelectItem>
+                      <SelectItem value="monthly">Monthly</SelectItem>
+                      <SelectItem value="yearly">Yearly</SelectItem>
+                      <SelectItem value="custom">Custom</SelectItem>
+                    </SelectContent>
+                  </Select>
+                </div>
+
+                {recurringFrequency === 'custom' && (
+                  <div className="grid grid-cols-2 gap-4">
+                    <div className="space-y-2">
+                      <Label htmlFor="interval">Every</Label>
+                      <Input
+                        id="interval"
+                        type="number"
+                        min="1"
+                        value={recurringInterval}
+                        onChange={(e) => setRecurringInterval(e.target.value)}
+                        placeholder="1"
+                      />
+                    </div>
+                    <div className="space-y-2">
+                      <Label htmlFor="unit">Unit</Label>
+                      <Select 
+                        value={recurringUnit} 
+                        onValueChange={(value: RecurringUnit) => setRecurringUnit(value)}
+                      >
+                        <SelectTrigger>
+                          <SelectValue />
+                        </SelectTrigger>
+                        <SelectContent>
+                          <SelectItem value="days">Days</SelectItem>
+                          <SelectItem value="weeks">Weeks</SelectItem>
+                          <SelectItem value="months">Months</SelectItem>
+                          <SelectItem value="years">Years</SelectItem>
+                        </SelectContent>
+                      </Select>
+                    </div>
+                  </div>
+                )}
+
+                {getRecurrenceText() && (
+                  <div className="rounded-md bg-muted p-3">
+                    <p className="text-sm text-muted-foreground">
+                      This transaction will repeat: <span className="font-medium text-foreground">{getRecurrenceText()}</span>
+                    </p>
+                  </div>
+                )}
+              </div>
+            )}
           </div>
 
           <Button type="submit" className="w-full" disabled={isLoading}>
